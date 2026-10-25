@@ -62,6 +62,8 @@
     .edit input { padding:10px; background:var(--card); }
     .f3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
     .f3 input { padding:10px 4px; text-align:center; }
+    .f3 > div { min-width:0; }
+    [hidden] { display:none !important; }
     .hint { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
     .hint.err { color:var(--stop); }
     .btns.small { margin-top:12px; }
@@ -71,8 +73,12 @@
              background:var(--card); color:var(--txt); font-size:15px; cursor:pointer; }
     .check input { width:20px; height:20px; margin:0; accent-color:#dc2626; }
     .check.on { background:#f4cccc; color:#1f2328; }
-    .row.conge { background:#f4cccc; color:#1f2328; }
-    .row.conge div span, .row.conge .rowtitle { color:#5b3a3a; }
+    .row.abs { color:#1f2328; }
+    .row.abs div span, .row.abs .rowtitle { color:#4b5563; }
+    .types { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:4px; }
+    .types button { border:2px solid transparent; border-radius:10px; padding:10px 6px; font-size:14px; font-weight:600;
+                    background:var(--card); color:var(--txt); cursor:pointer; }
+    .types button.on { border-color:var(--txt); }
     .conges { font-size:13px; color:var(--muted); margin-top:12px; }
     .foot { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
     .foot button { margin-top:16px; border:0; background:none; color:var(--muted); font-size:13px;
@@ -103,7 +109,8 @@
       <h2>Modifier une journée</h2>
       <label for="eDate">Date</label>
       <input type="date" id="eDate" required>
-      <label class="check" id="eCongeBox"><input type="checkbox" id="eConge"> 🌴 Jour de congé</label>
+      <label>Type de journée</label>
+      <div class="types" id="eTypes"></div>
       <div id="eFinBox" hidden>
         <label for="eFin">Jusqu'au (inclus)</label>
         <input type="date" id="eFin">
@@ -205,6 +212,13 @@
     const m = Math.round((d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60) / a) * a;
     return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 
+  // Types de journée non travaillée (mêmes couleurs que dans le tableur)
+  const TYPES = {
+    cp:    { titre: '🌴 Congé payé', color: '#f4cccc' },
+    off:   { titre: '😴 Jour off',   color: '#d9d9d9' },
+    ferie: { titre: '🎉 Férié',      color: '#c9daf8' }
+  };
+
   const BUTTONS = {
     idle:    [['start', 'Arrivée', 'go']],
     working: [['pause', 'Pause', 'pause'], ['end', 'Départ', 'stop']],
@@ -256,17 +270,20 @@
 
     const r = s.row;
     $('status').textContent = s.state === 'working' ? 'Au travail depuis ' + r.arrivee
-      : s.state === 'paused' ? 'En pause' : (r && r.conge) ? '🌴 Jour de congé' : 'Pas de session en cours';
-    const c = s.conges || { mois: 0, annee: 0 };
-    $('conges').textContent = '🌴 Congés : ' + c.mois + ' j ce mois · ' + c.annee + ' j cette année';
+      : s.state === 'paused' ? 'En pause' : (r && TYPES[r.absence]) ? TYPES[r.absence].titre : 'Pas de session en cours';
+    const a = s.absences || {}, nb = k => (a[k] || { mois: 0, annee: 0 });
+    $('conges').textContent = '🌴 CP : ' + nb('cp').annee + ' j cette année · 😴 Off : ' + nb('off').mois + ' j ce mois'
+      + (nb('ferie').mois ? ' · 🎉 Férié : ' + nb('ferie').mois + ' j' : '');
     $('timer').classList.toggle('paused', s.state === 'paused');
 
     if (document.activeElement !== $('lieu') && s.state !== 'idle' && r && r.lieu) $('lieu').value = r.lieu;
 
     if (r) {
       $('row').hidden = false;
-      $('row').classList.toggle('conge', !!r.conge);
-      $('row').innerHTML = '<div class="rowtitle">Ligne ' + r.line + ' du tableur — ' + r.date + (r.conge ? ' — 🌴 Congé' : '') + '</div>'
+      const T = TYPES[r.absence];
+      $('row').classList.toggle('abs', !!T);
+      $('row').style.background = T ? T.color : '';
+      $('row').innerHTML = '<div class="rowtitle">Ligne ' + r.line + ' du tableur — ' + r.date + (T ? ' — ' + T.titre : '') + '</div>'
         + '<div><span>Arrivée</span><b>' + (r.arrivee || '–') + '</b></div>'
         + '<div><span>Départ</span><b>' + (r.depart || '–') + '</b></div>'
         + '<div><span>Pause</span><b>' + (r.pause || '–') + '</b></div>';
@@ -330,30 +347,43 @@
     $('eD').value = r.arrivee || '';
     $('eE').value = r.depart || '';
     $('eF').value = r.pause || '';
-    $('eConge').checked = !!r.conge;
+    eType = r.absence || '';
+    savedTimes = null;
     $('eFin').value = $('eDate').value;
     let t = r.line ? 'Ligne ' + r.line + ' du tableur.' : 'Pas encore de ligne pour cette date : elle sera créée.';
     if (r.pauseEnCours) t += ' Pause en cours (elle s\'arrête si tu mets un départ).';
     editInfo = t;
-    congeUI();
+    typeUI();
   }
 
-  let editInfo = '';
-  function congeUI() {
-    const on = $('eConge').checked;
-    $('eCongeBox').classList.toggle('on', on);
+  let editInfo = '', eType = '';
+  // Choisir un type non travaillé met les heures de côté (le serveur avertit avant de les effacer) ; revenir à « Travail » les remet
+  let savedTimes = null;
+  function setType(k) {
+    if (k && !eType) {
+      savedTimes = [$('eD').value, $('eE').value, $('eF').value];
+      $('eD').value = ''; $('eE').value = ''; $('eF').value = '';
+    } else if (!k && eType && savedTimes) {
+      [$('eD').value, $('eE').value, $('eF').value] = savedTimes; savedTimes = null;
+    }
+    eType = k; typeUI();
+  }
+  function typeUI() {
+    const on = !!eType;
+    [...$('eTypes').children].forEach(b => b.classList.toggle('on', b.dataset.type === eType));
     $('eTimes').hidden = on;
     $('eFinBox').hidden = !on;
     $('eFin').min = $('eDate').value;
     if (!$('eFin').value || $('eFin').value < $('eDate').value) $('eFin').value = $('eDate').value;
-    hint(editInfo + (on ? ' La ligne sera colorée en rouge, sans heures.'
+    hint(editInfo + (on ? ' La ligne sera colorée comme dans le tableur, sans heures.'
                         : ' Pause vide = 00:00. Départ vide = journée en cours.'));
   }
-  $('eConge').addEventListener('change', () => {
-    if ($('eConge').checked && ($('eD').value || $('eE').value || ($('eF').value && $('eF').value !== '00:00'))
-        && !confirm('Cette journée a des heures. Les effacer pour la marquer en congé ?')) { $('eConge').checked = false; }
-    if ($('eConge').checked) { $('eD').value = ''; $('eE').value = ''; $('eF').value = ''; }
-    congeUI();
+  [['', '🛠 Travail', ''], ...Object.entries(TYPES).map(([k, t]) => [k, t.titre, t.color])].forEach(([k, label, color]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = label; b.dataset.type = k;
+    if (color) { b.style.background = color; b.style.color = '#1f2328'; }
+    b.onclick = () => setType(k);
+    $('eTypes').appendChild(b);
   });
 
   function loadEdit(key) {
@@ -378,19 +408,27 @@
   $('editBtn').onclick = openEdit;
   $('eCancel').onclick = closeEdit;
   $('eDate').addEventListener('change', () => { if ($('eDate').value) loadEdit($('eDate').value); });
-  $('edit').addEventListener('submit', ev => {
-    ev.preventDefault();
+  function saveEdit(force) {
     if (pending) return;
     const key = $('eDate').value;
     if (!key) return hint('Choisis une date.', true);
     pending++; $('eSave').disabled = true; hint('Enregistrement…');
     google.script.run
-      .withSuccessHandler(s => { pending--; $('eSave').disabled = false; closeEdit(); render(s);
+      .withSuccessHandler(s => {
+        pending--; $('eSave').disabled = false;
+        if (s.confirm) {                                   // avertissement du serveur : rien n'a encore été modifié
+          if (confirm(s.confirm)) saveEdit(true);
+          else hint('Annulé : rien n\'a été modifié.');
+          return;
+        }
+        savedTimes = null; closeEdit(); render(s);
         $('sync').textContent = '✓ Modifié'; setTimeout(() => { if (!pending) $('sync').textContent = ''; }, 2000); })
       .withFailureHandler(e => { pending--; $('eSave').disabled = false; hint(e.message, true); })
       .edit(key, { lieu: $('eLieu').value, arrivee: $('eD').value, depart: $('eE').value, pause: $('eF').value,
-                   conge: $('eConge').checked, congeFin: $('eConge').checked ? ($('eFin').value || key) : '' });
-  });
+                   absence: eType, fin: eType ? ($('eFin').value || key) : '',
+                   force: !!force });
+  }
+  $('edit').addEventListener('submit', ev => { ev.preventDefault(); saveEdit(false); });
 
   function load() {
     if (pending) return;
