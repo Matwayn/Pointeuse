@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -11,141 +11,280 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Pointeuse">
-  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#eceef1" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#101317" media="(prefers-color-scheme: dark)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
   <style>
-    :root { --bg:#f6f7f9; --card:#fff; --txt:#1f2328; --muted:#6b7280; --line:#d0d5dd; --chip:#eef0f3;
-            --go:#16a34a; --stop:#dc2626; --pause:#d97706; }
+    :root {
+      --bg:#eceef1; --surface:#ffffff; --ink:#16191d; --muted:#626a74; --line:#d5d9df; --soft:#f3f4f6;
+      --go:#1e9e5a; --stop:#d6453d; --pause:#e08a1e;
+      --tungsten:255,190,92;            /* faisceau pendant le travail */
+      --beam:var(--tungsten); --beam-a:.0;
+      --ease:cubic-bezier(.2,.7,.2,1);
+      --font:'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
     @media (prefers-color-scheme: dark) {
-      :root { --bg:#111418; --card:#1b1f24; --txt:#e6e8eb; --muted:#9aa3ad; --line:#3a4048; --chip:#262b31; }
+      :root { --bg:#101317; --surface:#181c21; --ink:#e9ecef; --muted:#97a0aa; --line:#2c3238; --soft:#20252b; }
     }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt);
-           display:flex; justify-content:center; align-items:flex-start; min-height:100vh;
-           padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); }
-    .card { width:100%; max-width:420px; background:var(--card); border-radius:20px; padding:24px 20px;
-            box-shadow:0 4px 24px rgba(0,0,0,.08); text-align:center; }
-    h1 { margin:0 0 4px; font-size:22px; }
-    .status { color:var(--muted); font-size:14px; min-height:20px; }
-    .timer { font-size:52px; font-weight:700; font-variant-numeric:tabular-nums; margin:14px 0 16px; letter-spacing:1px; }
-    .timer.paused { color:var(--pause); }
-    label { display:block; text-align:left; font-size:13px; color:var(--muted); margin-bottom:6px; }
-    input { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line);
-            background:transparent; color:var(--txt); font-size:16px; }
-    .chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 14px; min-height:8px; }
-    .chip { border:0; background:var(--chip); color:var(--txt); border-radius:999px; padding:7px 12px;
-            font-size:13px; cursor:pointer; flex:none; font-weight:500; }
-    .chip small { color:var(--muted); margin-left:4px; }
-    .btns { display:flex; gap:10px; }
-    .btns button { flex:1; border:0; border-radius:14px; padding:18px 10px; font-size:18px; font-weight:600;
-                   color:#fff; cursor:pointer; transition:opacity .2s, transform .1s; }
-    .btns button:active { transform:scale(.97); }
-    .btns button:disabled { opacity:.55; }
-    .go { background:var(--go); } .stop { background:var(--stop); } .pause { background:var(--pause); }
-    .sync { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
-    .msg { font-size:13px; color:var(--pause); }
-    .row { margin-top:14px; font-size:14px; background:var(--bg); border-radius:12px; padding:12px;
-           display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-    .row div span { display:block; font-size:11px; color:var(--muted); }
-    .row div b { font-variant-numeric:tabular-nums; }
-    .rowtitle { grid-column:1/-1; font-size:12px; color:var(--muted); text-align:left; }
-    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
-    .box { background:var(--bg); border-radius:12px; padding:12px 4px; }
-    .box b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
-    .box span { font-size:12px; color:var(--muted); }
-    a { display:inline-block; margin-top:16px; color:var(--muted); font-size:13px; }
-    .editbtn { margin-top:10px; border:0; background:none; color:var(--muted); font-size:14px; cursor:pointer;
-               text-decoration:underline; padding:6px; }
-    .edit { margin-top:12px; text-align:left; background:var(--bg); border-radius:12px; padding:14px; }
-    .edit h2 { margin:0 0 10px; font-size:15px; }
-    .edit label { margin:10px 0 4px; }
-    .edit input { padding:10px; background:var(--card); }
-    .f3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    .f3 input { padding:10px 4px; text-align:center; }
-    .f3 > div { min-width:0; }
     [hidden] { display:none !important; }
-    .hint { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+    html { background:var(--bg); }
+    body { margin:0; font-family:var(--font); font-size:16px; line-height:1.4; color:var(--ink); background:var(--bg);
+           display:flex; justify-content:center; align-items:flex-start; min-height:100vh;
+           padding:calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); }
+    .card { width:100%; max-width:420px; background:var(--surface); border-radius:24px; padding:18px 18px 20px;
+            box-shadow:0 1px 0 var(--line), 0 18px 40px -24px rgba(20,25,30,.35); }
+    button, input { font-family:inherit; }
+    button { cursor:pointer; }
+    :focus-visible { outline:2px solid rgb(var(--tungsten)); outline-offset:2px; }
+
+    /* ---------- En-tête ---------- */
+    .top { display:flex; align-items:center; gap:10px; min-height:32px; }
+    .brand { font-weight:700; font-stretch:110%; font-size:17px; letter-spacing:-.01em; margin:0; }
+    .sync { margin-left:auto; font-size:12px; color:var(--muted); opacity:0; transition:opacity .3s; }
+    .sync.on { opacity:1; }
+    .icon { width:34px; height:34px; border-radius:50%; border:0; background:var(--soft); color:var(--muted);
+            display:grid; place-items:center; transition:background .2s; }
+    .icon:hover { background:var(--line); }
+
+    /* ---------- Chargement (squelette) ---------- */
+    .skel { display:grid; gap:14px; padding-top:18px; transition:opacity .35s var(--ease); }
+    .sk { border-radius:12px; background:linear-gradient(90deg, var(--soft) 0%, var(--line) 50%, var(--soft) 100%);
+          background-size:250% 100%; animation:shimmer 1.3s linear infinite; }
+    .sk-status { height:14px; width:46%; margin:0 auto; border-radius:7px; }
+    .sk-timer  { height:76px; width:78%; margin:4px auto 6px; border-radius:16px; }
+    .sk-input  { height:46px; }
+    .sk-chips  { height:28px; width:70%; border-radius:14px; }
+    .sk-btns   { height:60px; border-radius:16px; }
+    .sk-strip  { height:58px; }
+    .skel-msg  { text-align:center; font-size:14px; color:var(--stop); min-height:0; }
+    @keyframes shimmer { from { background-position:100% 0; } to { background-position:-150% 0; } }
+    .app { opacity:0; transform:translateY(6px); transition:opacity .45s var(--ease), transform .45s var(--ease); }
+    .card.ready .app { opacity:1; transform:none; }
+    .card.ready .skel { opacity:0; pointer-events:none; }
+
+    /* ---------- Scène : chrono OU jour non travaillé (même emplacement, fondu enchaîné) ---------- */
+    .stage { display:grid; margin:10px 0 14px; }
+    .stage > * { grid-area:1/1; transition:opacity .4s var(--ease), transform .4s var(--ease), visibility 0s linear .4s; }
+    .stage > .off { opacity:0; transform:scale(.97); visibility:hidden; pointer-events:none; }
+    .stage > .shown { transition-delay:0s; }
+    .clock { position:relative; text-align:center; padding:22px 0 18px; isolation:isolate; }
+    .clock::before { content:''; position:absolute; inset:-6px 8% 0; z-index:-1; border-radius:50%;
+                     background:radial-gradient(closest-side, rgba(var(--beam), var(--beam-a)), rgba(var(--beam), 0));
+                     transition:background .6s var(--ease); }
+    .card[data-state="working"] { --beam-a:.55; }
+    .card[data-state="paused"]  { --beam:224,138,30; --beam-a:.22; }
+    .status { font-size:14px; color:var(--muted); min-height:20px; }
+    .timer { font-weight:650; font-stretch:112%; font-size:clamp(52px, 17vw, 66px); line-height:1.05; letter-spacing:-.02em;
+             font-variant-numeric:tabular-nums; margin-top:4px; transition:color .4s; }
+    .card[data-state="idle"] .timer { color:var(--muted); }
+    .card[data-state="paused"] .timer { color:var(--pause); animation:dim 2.4s ease-in-out infinite; }
+    @keyframes dim { 50% { opacity:.55; } }
+
+    .dayoff { text-align:center; padding:18px 12px 16px; border-radius:20px; background:var(--gel, #d9d9d9); color:var(--gel-ink, #2f3337);
+              transition:background .4s, opacity .4s var(--ease), transform .4s var(--ease); }
+    .dayoff .emo { font-size:44px; line-height:1; }
+    .dayoff h2 { margin:8px 0 2px; font-size:30px; font-weight:700; font-stretch:112%; letter-spacing:-.015em; }
+    .dayoff p { margin:0; font-size:15px; opacity:.8; }
+    .dayoff .work { margin-top:14px; border:1px solid currentColor; background:transparent; color:inherit; border-radius:999px;
+                    padding:9px 16px; font-size:14px; font-weight:600; opacity:.85; }
+    .dayoff .work:disabled { opacity:.4; }
+
+    /* ---------- Lieu ---------- */
+    .collapse { display:grid; grid-template-rows:1fr; transition:grid-template-rows .4s var(--ease), opacity .3s; }
+    .collapse > .inner { overflow:hidden; min-height:0; }
+    .collapse.closed { grid-template-rows:0fr; opacity:0; }
+    label { display:block; font-size:13px; color:var(--muted); margin:0 0 6px; }
+    input { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--surface);
+            color:var(--ink); font-size:16px; transition:border-color .2s; }
+    input:focus { border-color:rgb(var(--tungsten)); outline:none; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 14px; min-height:6px; }
+    .chip { border:0; background:var(--soft); color:var(--ink); border-radius:999px; padding:7px 12px; font-size:13px; font-weight:500;
+            animation:pop .25s var(--ease) both; }
+    .chip small { color:var(--muted); margin-left:4px; }
+
+    /* ---------- Boutons principaux ---------- */
+    .btns { display:flex; gap:10px; }
+    .btns button { flex:1; border:0; border-radius:16px; padding:19px 10px; font-size:18px; font-weight:650; font-stretch:105%;
+                   color:#fff; transition:opacity .2s, transform .12s, filter .2s; animation:pop .3s var(--ease) both; }
+    .btns button:active { transform:scale(.97); }
+    .btns button:disabled { opacity:.5; }
+    .go { background:var(--go); } .stop { background:var(--stop); } .pause { background:var(--pause); }
+    @keyframes pop { from { opacity:0; transform:translateY(4px) scale(.98); } to { opacity:1; transform:none; } }
+    .msg { font-size:13px; color:var(--pause); margin-top:8px; min-height:0; text-align:center; }
+    .msg:empty { display:none; }
+
+    /* ---------- Ligne du jour ---------- */
+    .today { margin-top:14px; padding:10px 0 0; border-top:1px solid var(--line); }
+    .today .meta { font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .today .cells { display:grid; grid-template-columns:repeat(3,1fr); }
+    .today .cells div { font-size:12px; color:var(--muted); }
+    .today .cells b { display:block; font-size:17px; color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums; }
+
+    /* ---------- Totaux ---------- */
+    .totals { display:grid; grid-template-columns:repeat(3,1fr); margin-top:16px; background:var(--soft); border-radius:16px; padding:12px 0; }
+    .totals div { text-align:center; }
+    .totals div + div { border-left:1px solid var(--line); }
+    .totals b { display:block; font-size:21px; font-weight:650; font-stretch:108%; font-variant-numeric:tabular-nums; }
+    .totals span { font-size:12px; color:var(--muted); }
+    .counts { display:flex; flex-wrap:wrap; justify-content:center; gap:6px 14px; margin-top:10px; font-size:13px; color:var(--muted); }
+    .counts span { display:inline-flex; align-items:center; gap:6px; }
+    .counts i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+    /* ---------- Modifier une journée ---------- */
+    .editbtn { display:block; margin:14px auto 0; border:0; background:none; color:var(--ink); font-size:14px; font-weight:600;
+               padding:8px 12px; border-radius:999px; transition:background .2s, opacity .3s; }
+    .editbtn:hover { background:var(--soft); }
+    .edit .inner > form { margin-top:12px; background:var(--soft); border-radius:18px; padding:16px; }
+    .edit h3 { margin:0 0 12px; font-size:16px; font-weight:650; }
+    .edit label { margin:12px 0 6px; }
+    .types-main { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .types-main button { border:2px solid transparent; border-radius:14px; padding:14px 8px; font-size:15px; font-weight:650;
+                         background:var(--surface); color:var(--ink); transition:border-color .2s, transform .12s, background .25s; }
+    .types-main button:active, .types-more button:active { transform:scale(.97); }
+    .types-more { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .types-more small { font-size:12px; color:var(--muted); }
+    .types-more button { border:1.5px solid transparent; border-radius:999px; padding:6px 11px; font-size:13px; font-weight:600;
+                         color:#1f2328; transition:border-color .2s, transform .12s; }
+    /* Type sélectionné : contour épais, pastille ✓, léger grossissement ; les autres s'estompent */
+    .types-main button, .types-more button { position:relative; transition:border-color .2s, transform .2s var(--ease), opacity .25s, filter .25s, box-shadow .2s; }
+    .types-main button:not(.on), .types-more button:not(.on) { opacity:.5; filter:saturate(.6); }
+    .types-main button:not(.on):hover, .types-more button:not(.on):hover { opacity:.8; }
+    .types-main button.on, .types-more button.on { border-color:var(--ink); box-shadow:0 0 0 3px var(--surface), 0 0 0 5px var(--ink);
+                                                   transform:scale(1.03); animation:choose .35s var(--ease); }
+    .types-main button.on::after, .types-more button.on::after {
+      content:'✓'; position:absolute; top:-8px; right:-8px; width:22px; height:22px; border-radius:50%;
+      background:var(--ink); color:var(--surface); font-size:13px; font-weight:800; line-height:22px; text-align:center;
+      box-shadow:0 0 0 2px var(--surface); animation:badge .3s var(--ease) both; }
+    .types-more button.on::after { width:18px; height:18px; line-height:18px; font-size:11px; top:-7px; right:-7px; }
+    .types-more { padding-top:4px; }
+    @keyframes choose { 0% { transform:scale(.96); } 60% { transform:scale(1.06); } 100% { transform:scale(1.03); } }
+    @keyframes badge { from { transform:scale(0); } to { transform:scale(1); } }
+    .chosen { font-size:13px; margin-top:10px; color:var(--ink); font-weight:600; min-height:18px; }
+    .chosen i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; border:1px solid var(--line); }
+    .f3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .f3 > div { min-width:0; }
+    .f3 input { padding:11px 4px; text-align:center; }
+    .hint { font-size:12px; color:var(--muted); margin-top:10px; }
     .hint.err { color:var(--stop); }
-    .btns.small { margin-top:12px; }
-    .btns.small button { padding:12px 8px; font-size:16px; }
-    .btns .ghost { background:var(--chip); color:var(--txt); }
-    .check { display:flex; align-items:center; gap:10px; margin:12px 0 4px; padding:10px 12px; border-radius:10px;
-             background:var(--card); color:var(--txt); font-size:15px; cursor:pointer; }
-    .check input { width:20px; height:20px; margin:0; accent-color:#dc2626; }
-    .check.on { background:#f4cccc; color:#1f2328; }
-    .row.abs { color:#1f2328; }
-    .row.abs div span, .row.abs .rowtitle { color:#4b5563; }
-    .types { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:4px; }
-    .types button { border:2px solid transparent; border-radius:10px; padding:10px 6px; font-size:14px; font-weight:600;
-                    background:var(--card); color:var(--txt); cursor:pointer; }
-    .types button.on { border-color:var(--txt); }
-    .conges { font-size:13px; color:var(--muted); margin-top:12px; }
-    .foot { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
-    .foot button { margin-top:16px; border:0; background:none; color:var(--muted); font-size:13px;
-                   text-decoration:underline; cursor:pointer; padding:0; }
-    .setup { text-align:left; }
-    .setup p { font-size:14px; color:var(--muted); line-height:1.45; margin:6px 0 14px; }
-    .setup label { margin-top:12px; }
+    .btns.small { margin-top:14px; }
+    .btns.small button { padding:13px 8px; font-size:16px; animation:none; }
+    .btns .ghost { background:var(--surface); color:var(--ink); }
+
+    .foot { display:flex; justify-content:center; margin-top:16px; }
+    .foot a { color:var(--muted); font-size:13px; }
+
+    /* ---------- Réglages ---------- */
+    .setup h1 { font-size:22px; font-stretch:110%; margin:4px 0 6px; }
+    .setup p { font-size:14px; color:var(--muted); line-height:1.5; margin:0 0 6px; }
+    .setup label { margin-top:14px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation:none !important; transition:none !important; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>⏱ Pointeuse</h1>
-    <div class="status" id="status">Chargement…</div>
-    <div class="timer" id="timer">00:00:00</div>
-
-    <label for="lieu">Lieu / événement</label>
-    <input id="lieu" placeholder="Tape les premières lettres…" autocomplete="off" autocapitalize="sentences">
-    <div class="chips" id="chips"></div>
-
-    <div class="btns" id="btns"></div>
-    <div class="sync" id="sync"></div>
-    <div class="msg" id="msg"></div>
-
-    <div class="row" id="row" hidden></div>
-    <button class="editbtn" id="editBtn" type="button">✏️ Modifier une journée</button>
-
-    <form class="edit" id="edit" hidden>
-      <h2>Modifier une journée</h2>
-      <label for="eDate">Date</label>
-      <input type="date" id="eDate" required>
-      <label>Type de journée</label>
-      <div class="types" id="eTypes"></div>
-      <div id="eFinBox" hidden>
-        <label for="eFin">Jusqu'au (inclus)</label>
-        <input type="date" id="eFin">
-      </div>
-      <label for="eLieu">Lieu / événement</label>
-      <input id="eLieu" autocomplete="off" autocapitalize="sentences">
-      <div class="f3" id="eTimes">
-        <div><label for="eD">Arrivée</label><input type="time" id="eD"></div>
-        <div><label for="eE">Départ</label><input type="time" id="eE"></div>
-        <div><label for="eF">Pause</label><input type="time" id="eF"></div>
-      </div>
-      <div class="hint" id="eHint"></div>
-      <div class="btns small">
-        <button type="button" class="ghost" id="eCancel">Annuler</button>
-        <button type="submit" class="go" id="eSave">Enregistrer</button>
-      </div>
-    </form>
-
-    <div class="grid">
-      <div class="box"><b id="d">–</b><span>Journée</span></div>
-      <div class="box"><b id="w">–</b><span>Semaine</span></div>
-      <div class="box"><b id="m">–</b><span>Mois</span></div>
+  <main class="card" id="main" data-state="idle">
+    <div class="top">
+      <h1 class="brand">⏱ Pointeuse</h1>
+      <span class="sync" id="sync" aria-live="polite"></span>
+      <button class="icon" id="setupBtn" type="button" aria-label="Réglages">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
     </div>
-    <div class="conges" id="conges"></div>
-    <div class="foot">
-      <a id="link" href="#" target="_blank" rel="noopener">Ouvrir l'onglet pointage</a>
-      <button type="button" id="setupBtn">⚙️ Réglages</button>
+
+    <div style="display:grid">
+      <!-- Squelette affiché pendant le premier chargement -->
+      <div class="skel" id="skel" aria-hidden="true" style="grid-area:1/1">
+        <div class="sk sk-status"></div>
+        <div class="sk sk-timer"></div>
+        <div class="sk sk-input"></div>
+        <div class="sk sk-chips"></div>
+        <div class="sk sk-btns"></div>
+        <div class="sk sk-strip"></div>
+        <div class="skel-msg" id="skelMsg"></div>
+      </div>
+
+      <div class="app" id="app" style="grid-area:1/1">
+        <div class="stage">
+          <div class="clock shown" id="clock">
+            <div class="status" id="status"></div>
+            <div class="timer" id="timer">00:00:00</div>
+          </div>
+          <div class="dayoff off" id="dayoff" aria-live="polite">
+            <div class="emo" id="offEmo"></div>
+            <h2 id="offTitle"></h2>
+            <p id="offDate"></p>
+            <button class="work" id="offWork" type="button">Je travaille quand même</button>
+          </div>
+        </div>
+
+        <div class="collapse" id="workBox">
+          <div class="inner">
+            <label for="lieu">Lieu / événement</label>
+            <input id="lieu" placeholder="Tape les premières lettres…" autocomplete="off" autocapitalize="sentences">
+            <div class="chips" id="chips"></div>
+            <div class="btns" id="btns"></div>
+            <div class="msg" id="msg"></div>
+            <div class="today" id="row" hidden></div>
+          </div>
+        </div>
+
+        <div class="totals">
+          <div><b id="d">–</b><span>Journée</span></div>
+          <div><b id="w">–</b><span>Semaine</span></div>
+          <div><b id="m">–</b><span>Mois</span></div>
+        </div>
+        <div class="counts" id="conges"></div>
+
+        <button class="editbtn" id="editBtn" type="button">✏️ Modifier une journée</button>
+        <div class="collapse edit closed" id="editWrap">
+          <div class="inner">
+            <form id="edit">
+              <h3>Modifier une journée</h3>
+              <label for="eDate">Date</label>
+              <input type="date" id="eDate" required>
+              <label>Type de journée</label>
+              <div class="types-main" id="eTypesMain"></div>
+              <div class="types-more" id="eTypesMore"><small>Autre :</small></div>
+              <div class="collapse closed" id="eFinBox">
+                <div class="inner">
+                  <label for="eFin">Jusqu'au (inclus)</label>
+                  <input type="date" id="eFin">
+                </div>
+              </div>
+              <label for="eLieu">Lieu / événement</label>
+              <input id="eLieu" autocomplete="off" autocapitalize="sentences">
+              <div class="collapse" id="eTimes">
+                <div class="inner">
+                  <div class="f3" style="margin-top:12px">
+                    <div><label for="eD" style="margin-top:0">Arrivée</label><input type="time" id="eD"></div>
+                    <div><label for="eE" style="margin-top:0">Départ</label><input type="time" id="eE"></div>
+                    <div><label for="eF" style="margin-top:0">Pause</label><input type="time" id="eF"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="hint" id="eHint"></div>
+              <div class="btns small">
+                <button type="button" class="ghost" id="eCancel">Annuler</button>
+                <button type="submit" class="go" id="eSave">Enregistrer</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="foot"><a id="link" href="#" target="_blank" rel="noopener">Ouvrir l'onglet pointage</a></div>
+      </div>
     </div>
-  </div>
+  </main>
 
   <!-- Écran de connexion (première ouverture ou bouton Réglages) -->
   <div class="card setup" id="setup" hidden>
-    <h1>⏱ Pointeuse</h1>
-    <p>Colle l'adresse de ton script (elle finit par <b>/exec</b>) et ton code secret.
-       Ils restent enregistrés sur ce téléphone uniquement.</p>
+    <h1 class="brand">⏱ Pointeuse</h1>
+    <p>Ces infos restent enregistrées sur cette appareil uniquement.</p>
     <form id="setupForm">
       <label for="sUrl">Adresse du script</label>
       <input id="sUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false" required>
@@ -154,7 +293,7 @@
       <div class="hint" id="sHint"></div>
       <div class="btns small">
         <button type="button" class="ghost" id="sCancel" hidden>Annuler</button>
-        <button type="submit" class="go" id="sSave">Connexion</button>
+        <button type="submit" class="go" id="sSave">Se connecter</button>
       </div>
     </form>
   </div>
@@ -207,23 +346,32 @@
   const fmtM = m => { const t = Math.round(m); return Math.floor(t / 60) + 'h' + String(t % 60).padStart(2, '0'); };
   const fmtS = sec => { const s = Math.max(0, Math.floor(sec));
     return [s / 3600, (s % 3600) / 60, s % 60].map(v => String(Math.floor(v)).padStart(2, '0')).join(':'); };
-  const hhmm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   const roundNow = () => { const a = (state && state.arrondi) || 5, d = new Date();
     const m = Math.round((d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60) / a) * a;
     return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+  const dateLongue = key => { const [y, m, d] = key.split('-').map(Number);
+    const s = new Date(y, m - 1, d).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    return s.charAt(0).toUpperCase() + s.slice(1); };
+  const setCollapsed = (el, closed) => el.classList.toggle('closed', closed);
 
-  // Types de journée non travaillée (mêmes couleurs que dans le tableur)
+  // Types de journée non travaillée : mêmes couleurs que dans le tableur
   const TYPES = {
-    cp:    { titre: '🌴 Congé payé', color: '#f4cccc' },
-    off:   { titre: '😴 Jour off',   color: '#d9d9d9' },
-    ferie: { titre: '🎉 Férié',      color: '#c9daf8' }
+    cp:    { nom: 'Congé payé', emoji: '🌴', color: '#f4cccc', ink: '#5e2424' },
+    off:   { nom: 'Jour off',   emoji: '😴', color: '#d9d9d9', ink: '#2f3337' },
+    ferie: { nom: 'Férié',      emoji: '🎉', color: '#c9daf8', ink: '#1f3a66' }
   };
+  const titre = k => TYPES[k].emoji + ' ' + TYPES[k].nom;
 
   const BUTTONS = {
     idle:    [['start', 'Arrivée', 'go']],
     working: [['pause', 'Pause', 'pause'], ['end', 'Départ', 'stop']],
     paused:  [['resume', 'Reprendre', 'go'], ['end', 'Départ', 'stop']]
   };
+
+  function flash(t, ms) {
+    $('sync').textContent = t; $('sync').classList.toggle('on', !!t);
+    if (ms) setTimeout(() => { if (!pending) $('sync').classList.remove('on'); }, ms);
+  }
 
   // ---------- Suggestions de lieux ----------
   function renderChips() {
@@ -239,11 +387,14 @@
       const recent = [...state.lieux].sort((a, b) => b.last - a.last).slice(0, 3);
       list = [...recent, ...state.lieux.filter(l => !recent.includes(l))];
     }
+    const sig = list.slice(0, 6).map(l => l.nom + l.n).join('|');
+    if ($('chips').dataset.sig === sig) return;              // rien n'a changé : pas de clignotement
+    $('chips').dataset.sig = sig;
     $('chips').innerHTML = '';
-    list.slice(0, 6).forEach(l => {
+    list.slice(0, 6).forEach((l, i) => {
       const b = document.createElement('button');
       b.className = 'chip'; b.type = 'button';
-      b.innerHTML = '';
+      b.style.animationDelay = (i * 25) + 'ms';
       b.append(l.nom);
       if (l.n > 1) { const s = document.createElement('small'); s.textContent = '×' + l.n; b.append(s); }
       b.onclick = () => { $('lieu').value = l.nom; renderChips(); lieuChanged(); };
@@ -260,33 +411,52 @@
   // ---------- Affichage ----------
   function render(s) {
     state = s; loadedAt = Date.now();
-    $('btns').innerHTML = '';
-    BUTTONS[s.state].forEach(([act, label, cls]) => {
-      const b = document.createElement('button');
-      b.textContent = label; b.className = cls; b.onclick = () => run(act);
-      b.disabled = pending > 0;
-      $('btns').appendChild(b);
-    });
-
     const r = s.row;
+    const T = s.state === 'idle' && r && TYPES[r.absence] ? TYPES[r.absence] : null;   // aujourd'hui = jour non travaillé
+    $('main').dataset.state = s.state;
+    $('main').classList.add('ready');
+
+    // Scène : chrono ou carte du jour non travaillé
+    $('clock').classList.toggle('off', !!T); $('clock').classList.toggle('shown', !T);
+    $('dayoff').classList.toggle('off', !T); $('dayoff').classList.toggle('shown', !!T);
+    setCollapsed($('workBox'), !!T);
+    if (T) {
+      $('dayoff').style.setProperty('--gel', T.color);
+      $('dayoff').style.setProperty('--gel-ink', T.ink);
+      $('offEmo').textContent = T.emoji;
+      $('offTitle').textContent = T.nom;
+      $('offDate').textContent = dateLongue(r.key);
+      $('offWork').disabled = pending > 0;
+    }
+
+    // Boutons : on ne les recrée que si l'état change (l'animation n'a lieu qu'à ce moment-là)
+    if ($('btns').dataset.state !== s.state || $('btns').dataset.pending !== String(pending > 0)) {
+      $('btns').dataset.state = s.state; $('btns').dataset.pending = String(pending > 0);
+      $('btns').innerHTML = '';
+      BUTTONS[s.state].forEach(([act, label, cls]) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = label; b.className = cls; b.onclick = () => run(act);
+        b.disabled = pending > 0;
+        $('btns').appendChild(b);
+      });
+    }
+
     $('status').textContent = s.state === 'working' ? 'Au travail depuis ' + r.arrivee
-      : s.state === 'paused' ? 'En pause' : (r && TYPES[r.absence]) ? TYPES[r.absence].titre : 'Pas de session en cours';
+      : s.state === 'paused' ? 'En pause' : (r && TYPES[r.absence]) ? titre(r.absence) : 'Pas de session en cours';
     const a = s.absences || {}, nb = k => (a[k] || { mois: 0, annee: 0 });
-    $('conges').textContent = '🌴 CP : ' + nb('cp').annee + ' j cette année · 😴 Off : ' + nb('off').mois + ' j ce mois'
+    $('conges').textContent = '🌴 cp : ' + nb('cp').annee + ' jours cette année · 😴 Off : ' + nb('off').mois + ' jours ce mois'
       + (nb('ferie').mois ? ' · 🎉 Férié : ' + nb('ferie').mois + ' j' : '');
     $('timer').classList.toggle('paused', s.state === 'paused');
 
     if (document.activeElement !== $('lieu') && s.state !== 'idle' && r && r.lieu) $('lieu').value = r.lieu;
 
-    if (r) {
+    if (r && !T) {
       $('row').hidden = false;
-      const T = TYPES[r.absence];
-      $('row').classList.toggle('abs', !!T);
-      $('row').style.background = T ? T.color : '';
-      $('row').innerHTML = '<div class="rowtitle">Ligne ' + r.line + ' du tableur — ' + r.date + (T ? ' — ' + T.titre : '') + '</div>'
-        + '<div><span>Arrivée</span><b>' + (r.arrivee || '–') + '</b></div>'
-        + '<div><span>Départ</span><b>' + (r.depart || '–') + '</b></div>'
-        + '<div><span>Pause</span><b>' + (r.pause || '–') + '</b></div>';
+      $('row').innerHTML = '<div class="meta"></div><div class="cells">'
+        + '<div>Arrivée<b></b></div><div>Départ<b></b></div><div>Pause<b></b></div></div>';
+      $('row').querySelector('.meta').textContent = r.date + ' — ligne ' + r.line + ' du tableur';
+      const b = $('row').querySelectorAll('b');
+      b[0].textContent = r.arrivee || '–'; b[1].textContent = r.depart || '–'; b[2].textContent = r.pause || '–';
     } else $('row').hidden = true;
 
     $('msg').textContent = s.msg || '';
@@ -313,7 +483,7 @@
     const lieu = $('lieu').value.trim();
     if (act === 'start') {
       s.state = 'working';
-      if (!s.row || !s.row.arrivee) { s.row = Object.assign(s.row || { line: '…', date: new Date().toLocaleDateString('fr-FR') }, { arrivee: roundNow(), depart: '', pause: '00:00' }); s.workedSec = 0; }
+      if (!s.row || !s.row.arrivee) { s.row = Object.assign(s.row || { line: '…', date: new Date().toLocaleDateString('fr-FR') }, { arrivee: roundNow(), depart: '', pause: '00:00', absence: '' }); s.workedSec = 0; }
       else s.row.depart = '';
     }
     if (act === 'pause') s.state = 'paused';
@@ -328,13 +498,13 @@
     const before = state;
     pending++;
     if (act !== 'lieu') render(predict(act));
-    $('sync').textContent = 'Enregistrement…';
+    flash('Enregistrement…');
     google.script.run
-      .withSuccessHandler(s => { pending--; $('sync').textContent = '✓ Enregistré'; render(s);
-        setTimeout(() => { if (!pending) $('sync').textContent = ''; }, 1500); })
-      .withFailureHandler(e => { pending--; $('sync').textContent = ''; render(before); alert('Erreur, rien n\'a été enregistré : ' + e.message); })
+      .withSuccessHandler(s => { pending--; render(s); flash('✓ Enregistré', 1500); })
+      .withFailureHandler(e => { pending--; flash(''); render(before); alert('Erreur, rien n\'a été enregistré : ' + e.message); })
       .action(act, $('lieu').value);
   }
+  $('offWork').onclick = () => run('start');
 
   // ---------- Modification manuelle ----------
   let editReq = 0;
@@ -370,21 +540,30 @@
   }
   function typeUI() {
     const on = !!eType;
-    [...$('eTypes').children].forEach(b => b.classList.toggle('on', b.dataset.type === eType));
-    $('eTimes').hidden = on;
-    $('eFinBox').hidden = !on;
+    document.querySelectorAll('[data-type]').forEach(b => {
+      const on = b.dataset.type === eType;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+    });
+    const ch = $('eChosen'); ch.textContent = '';
+    const dot = document.createElement('i'); dot.style.background = eType ? TYPES[eType].color : 'var(--surface)';
+    ch.append(dot, 'Sélectionné : ' + (eType ? TYPES[eType].nom : 'Travail'));
+    setCollapsed($('eTimes'), on);
+    setCollapsed($('eFinBox'), !on);
     $('eFin').min = $('eDate').value;
     if (!$('eFin').value || $('eFin').value < $('eDate').value) $('eFin').value = $('eDate').value;
     hint(editInfo + (on ? ' La ligne sera colorée comme dans le tableur, sans heures.'
                         : ' Pause vide = 00:00. Départ vide = journée en cours.'));
   }
-  [['', '🛠 Travail', ''], ...Object.entries(TYPES).map(([k, t]) => [k, t.titre, t.color])].forEach(([k, label, color]) => {
+  // Mis en avant : Travail et Jour off. En option, plus petit : Congé payé et Férié
+  function typeBtn(k, label, color) {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = label; b.dataset.type = k;
     if (color) { b.style.background = color; b.style.color = '#1f2328'; }
     b.onclick = () => setType(k);
-    $('eTypes').appendChild(b);
-  });
+    return b;
+  }
+  $('eTypesMain').append(typeBtn('', '🛠 Travail', ''), typeBtn('off', titre('off'), TYPES.off.color));
+  $('eTypesMore').append(typeBtn('cp', titre('cp'), TYPES.cp.color), typeBtn('ferie', titre('ferie'), TYPES.ferie.color));
 
   function loadEdit(key) {
     const id = ++editReq;
@@ -399,11 +578,13 @@
     if (!state) return;
     const key = (state.row && state.row.key) || state.today || localToday();
     $('eDate').value = key;
-    $('edit').hidden = false; $('editBtn').hidden = true;
+    setCollapsed($('editWrap'), false);
+    $('editBtn').hidden = true;
     if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
     else loadEdit(key);
+    setTimeout(() => $('editWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
   }
-  function closeEdit() { editReq++; $('edit').hidden = true; $('editBtn').hidden = false; hint(''); }
+  function closeEdit() { editReq++; setCollapsed($('editWrap'), true); $('editBtn').hidden = false; hint(''); }
 
   $('editBtn').onclick = openEdit;
   $('eCancel').onclick = closeEdit;
@@ -421,8 +602,7 @@
           else hint('Annulé : rien n\'a été modifié.');
           return;
         }
-        savedTimes = null; closeEdit(); render(s);
-        $('sync').textContent = '✓ Modifié'; setTimeout(() => { if (!pending) $('sync').textContent = ''; }, 2000); })
+        savedTimes = null; closeEdit(); render(s); flash('✓ Modifié', 2000); })
       .withFailureHandler(e => { pending--; $('eSave').disabled = false; hint(e.message, true); })
       .edit(key, { lieu: $('eLieu').value, arrivee: $('eD').value, depart: $('eE').value, pause: $('eF').value,
                    absence: eType, fin: eType ? ($('eFin').value || key) : '',
@@ -433,18 +613,21 @@
   function load() {
     if (pending) return;
     google.script.run.withSuccessHandler(s => { if (!pending) render(s); })
-      .withFailureHandler(e => $('status').textContent = 'Erreur : ' + e.message)
+      .withFailureHandler(e => {
+        if (state) flash('Erreur : ' + e.message, 4000);
+        else $('skelMsg').textContent = 'Chargement impossible : ' + e.message;
+      })
       .getStatus();
   }
 
   // ---------- Réglages ----------
   function showSetup(msg) {
-    $('setup').hidden = false; document.querySelector('.card').hidden = true;
+    $('setup').hidden = false; $('main').hidden = true;
     $('sUrl').value = (cfg && cfg.url) || ''; $('sTok').value = (cfg && cfg.token) || '';
     $('sCancel').hidden = !(cfg && cfg.url);
     $('sHint').textContent = msg || ''; $('sHint').classList.toggle('err', !!msg);
   }
-  function hideSetup() { $('setup').hidden = true; document.querySelector('.card').hidden = false; }
+  function hideSetup() { $('setup').hidden = true; $('main').hidden = false; }
   $('setupBtn').onclick = () => showSetup();
   $('sCancel').onclick = hideSetup;
   $('setupForm').addEventListener('submit', ev => {
