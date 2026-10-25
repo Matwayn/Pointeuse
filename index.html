@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <title>Pointeuse</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pointeuse">
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
+  <style>
+    :root { --bg:#f6f7f9; --card:#fff; --txt:#1f2328; --muted:#6b7280; --line:#d0d5dd; --chip:#eef0f3;
+            --go:#16a34a; --stop:#dc2626; --pause:#d97706; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#111418; --card:#1b1f24; --txt:#e6e8eb; --muted:#9aa3ad; --line:#3a4048; --chip:#262b31; }
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt);
+           display:flex; justify-content:center; align-items:flex-start; min-height:100vh;
+           padding:calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); }
+    .card { width:100%; max-width:420px; background:var(--card); border-radius:20px; padding:24px 20px;
+            box-shadow:0 4px 24px rgba(0,0,0,.08); text-align:center; }
+    h1 { margin:0 0 4px; font-size:22px; }
+    .status { color:var(--muted); font-size:14px; min-height:20px; }
+    .timer { font-size:52px; font-weight:700; font-variant-numeric:tabular-nums; margin:14px 0 16px; letter-spacing:1px; }
+    .timer.paused { color:var(--pause); }
+    label { display:block; text-align:left; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    input { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line);
+            background:transparent; color:var(--txt); font-size:16px; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 14px; min-height:8px; }
+    .chip { border:0; background:var(--chip); color:var(--txt); border-radius:999px; padding:7px 12px;
+            font-size:13px; cursor:pointer; flex:none; font-weight:500; }
+    .chip small { color:var(--muted); margin-left:4px; }
+    .btns { display:flex; gap:10px; }
+    .btns button { flex:1; border:0; border-radius:14px; padding:18px 10px; font-size:18px; font-weight:600;
+                   color:#fff; cursor:pointer; transition:opacity .2s, transform .1s; }
+    .btns button:active { transform:scale(.97); }
+    .btns button:disabled { opacity:.55; }
+    .go { background:var(--go); } .stop { background:var(--stop); } .pause { background:var(--pause); }
+    .sync { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+    .msg { font-size:13px; color:var(--pause); }
+    .row { margin-top:14px; font-size:14px; background:var(--bg); border-radius:12px; padding:12px;
+           display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+    .row div span { display:block; font-size:11px; color:var(--muted); }
+    .row div b { font-variant-numeric:tabular-nums; }
+    .rowtitle { grid-column:1/-1; font-size:12px; color:var(--muted); text-align:left; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+    .box { background:var(--bg); border-radius:12px; padding:12px 4px; }
+    .box b { display:block; font-size:20px; font-variant-numeric:tabular-nums; }
+    .box span { font-size:12px; color:var(--muted); }
+    a { display:inline-block; margin-top:16px; color:var(--muted); font-size:13px; }
+    .editbtn { margin-top:10px; border:0; background:none; color:var(--muted); font-size:14px; cursor:pointer;
+               text-decoration:underline; padding:6px; }
+    .edit { margin-top:12px; text-align:left; background:var(--bg); border-radius:12px; padding:14px; }
+    .edit h2 { margin:0 0 10px; font-size:15px; }
+    .edit label { margin:10px 0 4px; }
+    .edit input { padding:10px; background:var(--card); }
+    .f3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .f3 input { padding:10px 4px; text-align:center; }
+    .hint { font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+    .hint.err { color:var(--stop); }
+    .btns.small { margin-top:12px; }
+    .btns.small button { padding:12px 8px; font-size:16px; }
+    .btns .ghost { background:var(--chip); color:var(--txt); }
+    .check { display:flex; align-items:center; gap:10px; margin:12px 0 4px; padding:10px 12px; border-radius:10px;
+             background:var(--card); color:var(--txt); font-size:15px; cursor:pointer; }
+    .check input { width:20px; height:20px; margin:0; accent-color:#dc2626; }
+    .check.on { background:#f4cccc; color:#1f2328; }
+    .row.conge { background:#f4cccc; color:#1f2328; }
+    .row.conge div span, .row.conge .rowtitle { color:#5b3a3a; }
+    .conges { font-size:13px; color:var(--muted); margin-top:12px; }
+    .foot { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; }
+    .foot button { margin-top:16px; border:0; background:none; color:var(--muted); font-size:13px;
+                   text-decoration:underline; cursor:pointer; padding:0; }
+    .setup { text-align:left; }
+    .setup p { font-size:14px; color:var(--muted); line-height:1.45; margin:6px 0 14px; }
+    .setup label { margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>⏱ Pointeuse</h1>
+    <div class="status" id="status">Chargement…</div>
+    <div class="timer" id="timer">00:00:00</div>
+
+    <label for="lieu">Lieu / événement</label>
+    <input id="lieu" placeholder="Tape les premières lettres…" autocomplete="off" autocapitalize="sentences">
+    <div class="chips" id="chips"></div>
+
+    <div class="btns" id="btns"></div>
+    <div class="sync" id="sync"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="row" id="row" hidden></div>
+    <button class="editbtn" id="editBtn" type="button">✏️ Modifier une journée</button>
+
+    <form class="edit" id="edit" hidden>
+      <h2>Modifier une journée</h2>
+      <label for="eDate">Date</label>
+      <input type="date" id="eDate" required>
+      <label class="check" id="eCongeBox"><input type="checkbox" id="eConge"> 🌴 Jour de congé</label>
+      <div id="eFinBox" hidden>
+        <label for="eFin">Jusqu'au (inclus)</label>
+        <input type="date" id="eFin">
+      </div>
+      <label for="eLieu">Lieu / événement</label>
+      <input id="eLieu" autocomplete="off" autocapitalize="sentences">
+      <div class="f3" id="eTimes">
+        <div><label for="eD">Arrivée</label><input type="time" id="eD"></div>
+        <div><label for="eE">Départ</label><input type="time" id="eE"></div>
+        <div><label for="eF">Pause</label><input type="time" id="eF"></div>
+      </div>
+      <div class="hint" id="eHint"></div>
+      <div class="btns small">
+        <button type="button" class="ghost" id="eCancel">Annuler</button>
+        <button type="submit" class="go" id="eSave">Enregistrer</button>
+      </div>
+    </form>
+
+    <div class="grid">
+      <div class="box"><b id="d">–</b><span>Journée</span></div>
+      <div class="box"><b id="w">–</b><span>Semaine</span></div>
+      <div class="box"><b id="m">–</b><span>Mois</span></div>
+    </div>
+    <div class="conges" id="conges"></div>
+    <div class="foot">
+      <a id="link" href="#" target="_blank" rel="noopener">Ouvrir l'onglet pointage</a>
+      <button type="button" id="setupBtn">⚙️ Réglages</button>
+    </div>
+  </div>
+
+  <!-- Écran de connexion (première ouverture ou bouton Réglages) -->
+  <div class="card setup" id="setup" hidden>
+    <h1>⏱ Pointeuse</h1>
+    <p>Colle l'adresse de ton script (elle finit par <b>/exec</b>) et ton code secret.
+       Ils restent enregistrés sur ce téléphone uniquement.</p>
+    <form id="setupForm">
+      <label for="sUrl">Adresse du script</label>
+      <input id="sUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <label for="sTok">Code secret</label>
+      <input id="sTok" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <div class="hint" id="sHint"></div>
+      <div class="btns small">
+        <button type="button" class="ghost" id="sCancel" hidden>Annuler</button>
+        <button type="submit" class="go" id="sSave">Connexion</button>
+      </div>
+    </form>
+  </div>
+
+<script>
+  // ---------- Connexion au script (remplace google.script.run) ----------
+  const CFG_KEY = 'pointeuse-cfg';
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) { cfg = null; }
+  // Lien de configuration possible : index.html#url=…&code=…
+  (function () {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('url') && h.get('code')) {
+      cfg = { url: h.get('url').trim(), token: h.get('code').trim() };
+      try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+  })();
+
+  function callApi(fn, args, conf) {
+    conf = conf || cfg;
+    if (!conf || !conf.url) return Promise.reject(new Error('Appli pas encore configurée.'));
+    return fetch(conf.url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // évite la vérification CORS préalable
+      body: JSON.stringify({ token: conf.token, fn, args }),
+      redirect: 'follow'
+    }).catch(() => { throw new Error('Pas de connexion internet (ou adresse du script incorrecte).'); })
+      .then(r => { if (!r.ok) throw new Error('Le script ne répond pas (erreur ' + r.status + ').');
+                   return r.json().catch(() => { throw new Error('Réponse inattendue : vérifie l\'adresse et l\'accès « Tout le monde » du déploiement.'); }); })
+      .then(j => { if (!j.ok) { const e = new Error(j.error || 'Erreur inconnue'); e.code = j.code; throw e; } return j.data; });
+  }
+
+  // Même syntaxe qu'avant : google.script.run.withSuccessHandler(f).withFailureHandler(g).fonction(args)
+  window.google = { script: { get run() {
+    let ok = () => {}, ko = () => {};
+    const p = new Proxy({}, { get(_, name) {
+      if (name === 'withSuccessHandler') return f => { ok = f; return p; };
+      if (name === 'withFailureHandler') return f => { ko = f; return p; };
+      return (...args) => { callApi(name, args).then(ok, e => { if (e.code === 'token') showSetup('Code secret incorrect.'); ko(e); }); };
+    } });
+    return p;
+  } } };
+</script>
+
+<script>
+  let state = null, loadedAt = 0, pending = 0;
+  const $ = id => document.getElementById(id);
+  const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const fmtM = m => { const t = Math.round(m); return Math.floor(t / 60) + 'h' + String(t % 60).padStart(2, '0'); };
+  const fmtS = sec => { const s = Math.max(0, Math.floor(sec));
+    return [s / 3600, (s % 3600) / 60, s % 60].map(v => String(Math.floor(v)).padStart(2, '0')).join(':'); };
+  const hhmm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const roundNow = () => { const a = (state && state.arrondi) || 5, d = new Date();
+    const m = Math.round((d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60) / a) * a;
+    return String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+
+  const BUTTONS = {
+    idle:    [['start', 'Arrivée', 'go']],
+    working: [['pause', 'Pause', 'pause'], ['end', 'Départ', 'stop']],
+    paused:  [['resume', 'Reprendre', 'go'], ['end', 'Départ', 'stop']]
+  };
+
+  // ---------- Suggestions de lieux ----------
+  function renderChips() {
+    if (!state) return;
+    const q = norm($('lieu').value);
+    let list = state.lieux;
+    if (q) {
+      const words = q.split(/\s+/);
+      list = list.filter(l => { const n = norm(l.nom); return n !== q && words.every(w => n.includes(w)); })
+                 .sort((a, b) => (norm(b.nom).startsWith(q) - norm(a.nom).startsWith(q)) || b.n - a.n);
+    } else {
+      // champ vide : les 3 plus récents + les plus fréquents
+      const recent = [...state.lieux].sort((a, b) => b.last - a.last).slice(0, 3);
+      list = [...recent, ...state.lieux.filter(l => !recent.includes(l))];
+    }
+    $('chips').innerHTML = '';
+    list.slice(0, 6).forEach(l => {
+      const b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button';
+      b.innerHTML = '';
+      b.append(l.nom);
+      if (l.n > 1) { const s = document.createElement('small'); s.textContent = '×' + l.n; b.append(s); }
+      b.onclick = () => { $('lieu').value = l.nom; renderChips(); lieuChanged(); };
+      $('chips').appendChild(b);
+    });
+  }
+  $('lieu').addEventListener('input', renderChips);
+  $('lieu').addEventListener('change', lieuChanged);
+  function lieuChanged() {
+    if (state && state.state !== 'idle' && $('lieu').value.trim() && $('lieu').value.trim() !== (state.row && state.row.lieu))
+      run('lieu');
+  }
+
+  // ---------- Affichage ----------
+  function render(s) {
+    state = s; loadedAt = Date.now();
+    $('btns').innerHTML = '';
+    BUTTONS[s.state].forEach(([act, label, cls]) => {
+      const b = document.createElement('button');
+      b.textContent = label; b.className = cls; b.onclick = () => run(act);
+      b.disabled = pending > 0;
+      $('btns').appendChild(b);
+    });
+
+    const r = s.row;
+    $('status').textContent = s.state === 'working' ? 'Au travail depuis ' + r.arrivee
+      : s.state === 'paused' ? 'En pause' : (r && r.conge) ? '🌴 Jour de congé' : 'Pas de session en cours';
+    const c = s.conges || { mois: 0, annee: 0 };
+    $('conges').textContent = '🌴 Congés : ' + c.mois + ' j ce mois · ' + c.annee + ' j cette année';
+    $('timer').classList.toggle('paused', s.state === 'paused');
+
+    if (document.activeElement !== $('lieu') && s.state !== 'idle' && r && r.lieu) $('lieu').value = r.lieu;
+
+    if (r) {
+      $('row').hidden = false;
+      $('row').classList.toggle('conge', !!r.conge);
+      $('row').innerHTML = '<div class="rowtitle">Ligne ' + r.line + ' du tableur — ' + r.date + (r.conge ? ' — 🌴 Congé' : '') + '</div>'
+        + '<div><span>Arrivée</span><b>' + (r.arrivee || '–') + '</b></div>'
+        + '<div><span>Départ</span><b>' + (r.depart || '–') + '</b></div>'
+        + '<div><span>Pause</span><b>' + (r.pause || '–') + '</b></div>';
+    } else $('row').hidden = true;
+
+    $('msg').textContent = s.msg || '';
+    $('link').href = s.url || '#';
+    renderChips();
+    tick();
+  }
+
+  function tick() {
+    if (!state) return;
+    const extra = state.state === 'working' ? (Date.now() - loadedAt) / 1000 : 0;
+    $('timer').textContent = fmtS(state.workedSec + extra);
+    $('d').textContent = fmtM(state.totals.day + extra / 60);
+    $('w').textContent = fmtM(state.totals.week + extra / 60);
+    $('m').textContent = fmtM(state.totals.month + extra / 60);
+  }
+
+  // Mise à jour immédiate de l'écran, avant la réponse du serveur
+  function predict(act) {
+    const s = JSON.parse(JSON.stringify(state));
+    const extra = s.state === 'working' ? (Date.now() - loadedAt) / 1000 : 0;
+    s.workedSec += extra; ['day', 'week', 'month'].forEach(k => s.totals[k] += extra / 60);
+    s.msg = '';
+    const lieu = $('lieu').value.trim();
+    if (act === 'start') {
+      s.state = 'working';
+      if (!s.row || !s.row.arrivee) { s.row = Object.assign(s.row || { line: '…', date: new Date().toLocaleDateString('fr-FR') }, { arrivee: roundNow(), depart: '', pause: '00:00' }); s.workedSec = 0; }
+      else s.row.depart = '';
+    }
+    if (act === 'pause') s.state = 'paused';
+    if (act === 'resume') s.state = 'working';
+    if (act === 'end') { s.state = 'idle'; if (s.row) s.row.depart = roundNow(); s.workedSec = 0; }
+    if (lieu && s.row) s.row.lieu = lieu;
+    return s;
+  }
+
+  function run(act) {
+    if (!state || pending) return;
+    const before = state;
+    pending++;
+    if (act !== 'lieu') render(predict(act));
+    $('sync').textContent = 'Enregistrement…';
+    google.script.run
+      .withSuccessHandler(s => { pending--; $('sync').textContent = '✓ Enregistré'; render(s);
+        setTimeout(() => { if (!pending) $('sync').textContent = ''; }, 1500); })
+      .withFailureHandler(e => { pending--; $('sync').textContent = ''; render(before); alert('Erreur, rien n\'a été enregistré : ' + e.message); })
+      .action(act, $('lieu').value);
+  }
+
+  // ---------- Modification manuelle ----------
+  let editReq = 0;
+  const localToday = () => { const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function hint(t, err) { $('eHint').textContent = t || ''; $('eHint').classList.toggle('err', !!err); }
+
+  function fillEdit(r) {
+    $('eLieu').value = r.lieu || '';
+    $('eD').value = r.arrivee || '';
+    $('eE').value = r.depart || '';
+    $('eF').value = r.pause || '';
+    $('eConge').checked = !!r.conge;
+    $('eFin').value = $('eDate').value;
+    let t = r.line ? 'Ligne ' + r.line + ' du tableur.' : 'Pas encore de ligne pour cette date : elle sera créée.';
+    if (r.pauseEnCours) t += ' Pause en cours (elle s\'arrête si tu mets un départ).';
+    editInfo = t;
+    congeUI();
+  }
+
+  let editInfo = '';
+  function congeUI() {
+    const on = $('eConge').checked;
+    $('eCongeBox').classList.toggle('on', on);
+    $('eTimes').hidden = on;
+    $('eFinBox').hidden = !on;
+    $('eFin').min = $('eDate').value;
+    if (!$('eFin').value || $('eFin').value < $('eDate').value) $('eFin').value = $('eDate').value;
+    hint(editInfo + (on ? ' La ligne sera colorée en rouge, sans heures.'
+                        : ' Pause vide = 00:00. Départ vide = journée en cours.'));
+  }
+  $('eConge').addEventListener('change', () => {
+    if ($('eConge').checked && ($('eD').value || $('eE').value || ($('eF').value && $('eF').value !== '00:00'))
+        && !confirm('Cette journée a des heures. Les effacer pour la marquer en congé ?')) { $('eConge').checked = false; }
+    if ($('eConge').checked) { $('eD').value = ''; $('eE').value = ''; $('eF').value = ''; }
+    congeUI();
+  });
+
+  function loadEdit(key) {
+    const id = ++editReq;
+    hint('Chargement…'); $('eSave').disabled = true;
+    google.script.run
+      .withSuccessHandler(r => { if (id !== editReq) return; $('eSave').disabled = false; fillEdit(r); })
+      .withFailureHandler(e => { if (id !== editReq) return; hint('Erreur : ' + e.message, true); })
+      .getRow(key);
+  }
+
+  function openEdit() {
+    if (!state) return;
+    const key = (state.row && state.row.key) || state.today || localToday();
+    $('eDate').value = key;
+    $('edit').hidden = false; $('editBtn').hidden = true;
+    if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
+    else loadEdit(key);
+  }
+  function closeEdit() { editReq++; $('edit').hidden = true; $('editBtn').hidden = false; hint(''); }
+
+  $('editBtn').onclick = openEdit;
+  $('eCancel').onclick = closeEdit;
+  $('eDate').addEventListener('change', () => { if ($('eDate').value) loadEdit($('eDate').value); });
+  $('edit').addEventListener('submit', ev => {
+    ev.preventDefault();
+    if (pending) return;
+    const key = $('eDate').value;
+    if (!key) return hint('Choisis une date.', true);
+    pending++; $('eSave').disabled = true; hint('Enregistrement…');
+    google.script.run
+      .withSuccessHandler(s => { pending--; $('eSave').disabled = false; closeEdit(); render(s);
+        $('sync').textContent = '✓ Modifié'; setTimeout(() => { if (!pending) $('sync').textContent = ''; }, 2000); })
+      .withFailureHandler(e => { pending--; $('eSave').disabled = false; hint(e.message, true); })
+      .edit(key, { lieu: $('eLieu').value, arrivee: $('eD').value, depart: $('eE').value, pause: $('eF').value,
+                   conge: $('eConge').checked, congeFin: $('eConge').checked ? ($('eFin').value || key) : '' });
+  });
+
+  function load() {
+    if (pending) return;
+    google.script.run.withSuccessHandler(s => { if (!pending) render(s); })
+      .withFailureHandler(e => $('status').textContent = 'Erreur : ' + e.message)
+      .getStatus();
+  }
+
+  // ---------- Réglages ----------
+  function showSetup(msg) {
+    $('setup').hidden = false; document.querySelector('.card').hidden = true;
+    $('sUrl').value = (cfg && cfg.url) || ''; $('sTok').value = (cfg && cfg.token) || '';
+    $('sCancel').hidden = !(cfg && cfg.url);
+    $('sHint').textContent = msg || ''; $('sHint').classList.toggle('err', !!msg);
+  }
+  function hideSetup() { $('setup').hidden = true; document.querySelector('.card').hidden = false; }
+  $('setupBtn').onclick = () => showSetup();
+  $('sCancel').onclick = hideSetup;
+  $('setupForm').addEventListener('submit', ev => {
+    ev.preventDefault();
+    const conf = { url: $('sUrl').value.trim(), token: $('sTok').value.trim() };
+    if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(conf.url)) {
+      $('sHint').textContent = 'L\'adresse doit commencer par https://script.google.com/ et finir par /exec.';
+      $('sHint').classList.add('err'); return;
+    }
+    $('sSave').disabled = true; $('sHint').classList.remove('err'); $('sHint').textContent = 'Vérification…';
+    callApi('getStatus', [], conf).then(s => {
+      cfg = conf;
+      try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {}
+      $('sSave').disabled = false; hideSetup(); start(); render(s);
+    }, e => { $('sSave').disabled = false; $('sHint').textContent = e.message; $('sHint').classList.add('err'); });
+  });
+
+  let started = false;
+  function start() {
+    if (started) return; started = true;
+    setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+    load();
+  }
+
+  if (cfg && cfg.url && cfg.token) start(); else showSetup();
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
