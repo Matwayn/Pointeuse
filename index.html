@@ -96,6 +96,9 @@
     .collapse { display:grid; grid-template-rows:1fr; transition:grid-template-rows .4s var(--ease), opacity .3s; }
     .collapse > .inner { overflow:hidden; min-height:0; }
     .collapse.closed { grid-template-rows:0fr; opacity:0; }
+    /* Champs du formulaire : simple afficher / masquer (fiable sur Safari iPhone), avec un fondu à l'apparition */
+    .reveal:not([hidden]) { animation:reveal .3s var(--ease); }
+    @keyframes reveal { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
     label { display:block; font-size:13px; color:var(--muted); margin:0 0 6px; }
     input { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--surface);
             color:var(--ink); font-size:16px; transition:border-color .2s; }
@@ -137,6 +140,8 @@
     .editbtn { display:block; margin:14px auto 0; border:0; background:none; color:var(--ink); font-size:14px; font-weight:600;
                padding:8px 12px; border-radius:999px; transition:background .2s, opacity .3s; }
     .editbtn:hover { background:var(--soft); }
+    .editrow { display:flex; justify-content:center; flex-wrap:wrap; gap:4px; margin-top:14px; }
+    .editrow .editbtn { margin:0; }
     .edit .inner > form { margin-top:12px; background:var(--soft); border-radius:18px; padding:16px; }
     .edit h3 { margin:0 0 12px; font-size:16px; font-weight:650; }
     .edit label { margin:12px 0 6px; }
@@ -240,32 +245,32 @@
         </div>
         <div class="counts" id="conges"></div>
 
-        <button class="editbtn" id="editBtn" type="button">✏️ Modifier une journée</button>
+        <div class="editrow" id="editBtn">
+          <button class="editbtn" id="editOpen" type="button">✏️ Modifier une journée</button>
+          <button class="editbtn" id="cpOpen" type="button">🌴 Poser des congés</button>
+        </div>
         <div class="collapse edit closed" id="editWrap">
           <div class="inner">
             <form id="edit">
               <h3>Modifier une journée</h3>
-              <label for="eDate">Date</label>
+              <label for="eDate" id="eDateLbl">Date</label>
               <input type="date" id="eDate" required>
               <label>Type de journée</label>
               <div class="types-main" id="eTypesMain"></div>
               <div class="types-more" id="eTypesMore"><small>Autre :</small></div>
-              <div class="collapse closed" id="eFinBox">
-                <div class="inner">
+              <div class="chosen" id="eChosen" aria-live="polite"></div>
+              <div class="reveal" id="eFinBox" hidden>
                   <label for="eFin">Jusqu'au (inclus)</label>
                   <input type="date" id="eFin">
-                </div>
               </div>
               <label for="eLieu">Lieu / événement</label>
               <input id="eLieu" autocomplete="off" autocapitalize="sentences">
-              <div class="collapse" id="eTimes">
-                <div class="inner">
+              <div class="reveal" id="eTimes">
                   <div class="f3" style="margin-top:12px">
                     <div><label for="eD" style="margin-top:0">Arrivée</label><input type="time" id="eD"></div>
                     <div><label for="eE" style="margin-top:0">Départ</label><input type="time" id="eE"></div>
                     <div><label for="eF" style="margin-top:0">Pause</label><input type="time" id="eF"></div>
                   </div>
-                </div>
               </div>
               <div class="hint" id="eHint"></div>
               <div class="btns small">
@@ -547,8 +552,9 @@
     const ch = $('eChosen'); ch.textContent = '';
     const dot = document.createElement('i'); dot.style.background = eType ? TYPES[eType].color : 'var(--surface)';
     ch.append(dot, 'Sélectionné : ' + (eType ? TYPES[eType].nom : 'Travail'));
-    setCollapsed($('eTimes'), on);
-    setCollapsed($('eFinBox'), !on);
+    $('eTimes').hidden = on;
+    $('eDateLbl').textContent = on ? 'Du' : 'Date';
+    $('eFinBox').hidden = !on;
     $('eFin').min = $('eDate').value;
     if (!$('eFin').value || $('eFin').value < $('eDate').value) $('eFin').value = $('eDate').value;
     hint(editInfo + (on ? ' La ligne sera colorée comme dans le tableur, sans heures.'
@@ -565,30 +571,42 @@
   $('eTypesMain').append(typeBtn('', '🛠 Travail', ''), typeBtn('off', titre('off'), TYPES.off.color));
   $('eTypesMore').append(typeBtn('cp', titre('cp'), TYPES.cp.color), typeBtn('ferie', titre('ferie'), TYPES.ferie.color));
 
-  function loadEdit(key) {
+  function loadEdit(key, garder) {
     const id = ++editReq;
     hint('Chargement…'); $('eSave').disabled = true;
     google.script.run
-      .withSuccessHandler(r => { if (id !== editReq) return; $('eSave').disabled = false; fillEdit(r); })
+      .withSuccessHandler(r => { if (id !== editReq) return; $('eSave').disabled = false; fillEdit(r);
+        if (garder && !r.arrivee) setType(garder); })      // on garde le type choisi si la journée n'a pas d'heures
       .withFailureHandler(e => { if (id !== editReq) return; hint('Erreur : ' + e.message, true); })
       .getRow(key);
   }
 
-  function openEdit() {
+  function openEdit(conges) {
     if (!state) return;
-    const key = (state.row && state.row.key) || state.today || localToday();
+    // « Poser des congés » : on part de demain, type Congé payé, et on choisit la date de fin
+    const key = conges === true ? addDays(state.today || localToday(), 1)
+              : (state.row && state.row.key) || state.today || localToday();
     $('eDate').value = key;
     setCollapsed($('editWrap'), false);
     $('editBtn').hidden = true;
-    if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
+    if (conges === true) {
+      editInfo = 'Les dimanches et jours fériés de la période ne sont pas décomptés.';
+      $('eLieu').value = ''; $('eD').value = ''; $('eE').value = ''; $('eF').value = '';
+      eType = ''; savedTimes = null; $('eFin').value = key; $('eSave').disabled = false;
+      setType('cp');
+    }
+    else if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
     else loadEdit(key);
     setTimeout(() => $('editWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
   }
   function closeEdit() { editReq++; setCollapsed($('editWrap'), true); $('editBtn').hidden = false; hint(''); }
 
-  $('editBtn').onclick = openEdit;
+  $('editOpen').onclick = () => openEdit(false);
+  $('cpOpen').onclick = () => openEdit(true);
+  const addDays = (key, n) => { const [y, m, d] = key.split('-').map(Number); const t = new Date(y, m - 1, d + n);
+    return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
   $('eCancel').onclick = closeEdit;
-  $('eDate').addEventListener('change', () => { if ($('eDate').value) loadEdit($('eDate').value); });
+  $('eDate').addEventListener('change', () => { if ($('eDate').value) loadEdit($('eDate').value, eType); });
   function saveEdit(force) {
     if (pending) return;
     const key = $('eDate').value;
