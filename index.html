@@ -247,7 +247,6 @@
 
         <div class="editrow" id="editBtn">
           <button class="editbtn" id="editOpen" type="button">✏️ Modifier une journée</button>
-          <button class="editbtn" id="cpOpen" type="button">🌴 Poser des congés</button>
         </div>
         <div class="collapse edit closed" id="editWrap">
           <div class="inner">
@@ -581,30 +580,20 @@
       .getRow(key);
   }
 
-  function openEdit(conges) {
+  // Les congés et récupérations sont reportés automatiquement depuis l'agenda Audiovisions (pointeuse_sync.py)
+  function openEdit() {
     if (!state) return;
-    // « Poser des congés » : on part de demain, type Congé payé, et on choisit la date de fin
-    const key = conges === true ? addDays(state.today || localToday(), 1)
-              : (state.row && state.row.key) || state.today || localToday();
+    const key = (state.row && state.row.key) || state.today || localToday();
     $('eDate').value = key;
     setCollapsed($('editWrap'), false);
     $('editBtn').hidden = true;
-    if (conges === true) {
-      editInfo = 'Les dimanches et jours fériés de la période ne sont pas décomptés.';
-      $('eLieu').value = ''; $('eD').value = ''; $('eE').value = ''; $('eF').value = '';
-      eType = ''; savedTimes = null; $('eFin').value = key; $('eSave').disabled = false;
-      setType('cp');
-    }
-    else if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
+    if (state.row && state.row.key === key) { $('eSave').disabled = false; fillEdit(state.row); }
     else loadEdit(key);
     setTimeout(() => $('editWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 120);
   }
   function closeEdit() { editReq++; setCollapsed($('editWrap'), true); $('editBtn').hidden = false; hint(''); }
 
-  $('editOpen').onclick = () => openEdit(false);
-  $('cpOpen').onclick = () => openEdit(true);
-  const addDays = (key, n) => { const [y, m, d] = key.split('-').map(Number); const t = new Date(y, m - 1, d + n);
-    return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+  $('editOpen').onclick = () => openEdit();
   $('eCancel').onclick = closeEdit;
   $('eDate').addEventListener('change', () => { if ($('eDate').value) loadEdit($('eDate').value, eType); });
   function saveEdit(force) {
